@@ -65,25 +65,17 @@ bool is_linear_aprox = true;
 
 Camera cam;
 Shader ourShader;
-Shader ourShader2;
 GLFWwindow* window;
-GLFWwindow* window2;
 //std::unique_ptr<Cursor> cursor, center;
 
 std::vector<std::shared_ptr<Object>> objects_list = {};
 std::unique_ptr<Block> block;
-std::unique_ptr<Block> block2;
 
 void draw_scene();
-void draw_scene2();
 void framebuffer_size_callback(GLFWwindow* window_1, int width, int height);
-void framebuffer_size_callback2(GLFWwindow* window_1, int width, int height);
 void processInput(GLFWwindow* window);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void create_gui();
-void draw_frames1();
-void draw_frames2();
 
 int main() {
 	glfwInit();
@@ -92,8 +84,7 @@ int main() {
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	//glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	window = glfwCreateWindow(DEFAULT_WIDTH, DEFAULT_HEIGHT, "SimpleCAD 1", NULL, NULL);
-	window2 = glfwCreateWindow(DEFAULT_WIDTH, DEFAULT_HEIGHT, "SimpleCAD 2", NULL, window);
-	if (window == NULL || window2 == NULL)
+	if (window == NULL)
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;
 		glfwTerminate();
@@ -127,7 +118,6 @@ int main() {
 	glViewport(0, 0, DEFAULT_WIDTH, DEFAULT_HEIGHT);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetCursorPosCallback(window, mouse_callback);
-	glfwSetScrollCallback(window, scroll_callback);
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -136,32 +126,18 @@ int main() {
 
 	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();
-	//ImGui::StyleColorsClassic();
 	const char* glsl_version = "#version 330";
 	// Setup Platform/Renderer bindings
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init(glsl_version);
 
 	// build and compile our shader program
-	// ------------------------------------
 	ourShader = Shader("shader.vs", "shader.fs"); // you can name your shader files however you like
 
 	glEnable(GL_DEPTH_TEST);
 
 	block = std::make_unique<Block>(size_x, size_y, size_z, divisions_x, divisions_y, ourShader);
-	glfwMakeContextCurrent(window2);
 
-	glViewport(0, 0, DEFAULT_WIDTH, DEFAULT_HEIGHT);
-	glfwSetFramebufferSizeCallback(window2, framebuffer_size_callback2);
-	glfwSetCursorPosCallback(window2, mouse_callback);
-	glfwSetScrollCallback(window2, scroll_callback);
-
-	// build and compile our shader program
-	// ------------------------------------
-	ourShader2 = Shader("shader.vs", "shader.fs"); // you can name your shader files however you like
-	glEnable(GL_DEPTH_TEST);
-
-	block2 = std::make_unique<Block>(size_x, size_y, size_z, divisions_x, divisions_y, ourShader2);
 	// render loop
 	while (!glfwWindowShouldClose(window))
 	{
@@ -184,10 +160,7 @@ int main() {
 		processInput(window);
 		create_gui();
 
-		if (show_frames)
-			draw_frames1();
-		else
-			draw_scene();
+		draw_scene();
 
 		// Render dear imgui into screen
 		ImGui::Render();
@@ -196,16 +169,6 @@ int main() {
 		// check and call events and swap the buffers
 		glfwPollEvents();
 		glfwSwapBuffers(window);
-
-		glfwMakeContextCurrent(window2);
-		glClearColor(0.8f, 0.2f, 0.2f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		if (show_frames)
-			draw_frames2();
-		else
-			draw_scene2();
-		glfwSwapBuffers(window2);
 
 		if (animate) {
 			if (T < 1.0f) {
@@ -230,31 +193,6 @@ void draw_scene() {
 	block->DrawObject(mvp);
 }
 
-void draw_frames1() {
-	const float diff = 1.0f / (number_of_frames_shown);
-	for (int i = 0; i < number_of_frames_shown; i++) {
-		block->DrawFrame(diff * i, translation_s, translation_e, quaternion_s, quaternion_e, is_linear_aprox);
-		block->DrawObject(mvp);
-	}
-	block->DrawFrame(1.0f, translation_s, translation_e, quaternion_s, quaternion_e, is_linear_aprox);
-	block->DrawObject(mvp);
-}
-
-void draw_frames2() {
-	const float diff = 1.0f / (number_of_frames_shown);
-	for (int i = 0; i < number_of_frames_shown; i++) {
-		block2->DrawFrame(diff * i, translation_s, translation_e, rot_euler_s, rot_euler_e, is_linear_aprox);
-		block2->DrawObject(mvp);
-	}
-	block2->DrawFrame(1.0f, translation_s, translation_e, rot_euler_s, rot_euler_e, is_linear_aprox);
-	block2->DrawObject(mvp);
-}
-
-void draw_scene2() {
-	block2->DrawFrame(T, translation_s, translation_e, rot_euler_s, rot_euler_e, is_linear_aprox);
-	block2->DrawObject(mvp);
-}
-
 #pragma region  boilerCodeOpenGL
 
 void framebuffer_size_callback(GLFWwindow* window_1, int width, int height)
@@ -262,29 +200,12 @@ void framebuffer_size_callback(GLFWwindow* window_1, int width, int height)
 	glfwMakeContextCurrent(window_1);
 	glViewport(0, 0, width, height);
 
-
-	glfwMakeContextCurrent(window2);
-	glViewport(0, 0, width, height);
-	glfwSetWindowSize(window2, width, height);
-
 	cam.SetPerspective(glm::radians(45.0f), width / (float)height, near, far);
 	width_ = width;
 	height_ = height;
 }
 
-void framebuffer_size_callback2(GLFWwindow* window_2, int width, int height)
-{
-	glfwMakeContextCurrent(window);
-	glViewport(0, 0, width, height);
-	glfwSetWindowSize(window, width, height);
 
-	glfwMakeContextCurrent(window_2);
-	glViewport(0, 0, width, height);
-
-	cam.SetPerspective(glm::radians(45.0f), width / (float)height, near, far);
-	width_ = width;
-	height_ = height;
-}
 
 void processInput(GLFWwindow* window)
 {
@@ -297,34 +218,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 	if (ImGui::GetIO().WantCaptureMouse)
 		return;
 	glm::vec2 mousePos = { xpos,ypos };
-	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS)
-	{
-		glm::vec2 diff = (mousePosOld - mousePos) * PRECISION;
-		float cameraSpeed = 30 * deltaTime;
-		float radius;
-		diff *= cameraSpeed;
-
-		glm::vec3 right_movement = cam.GetRightVector() * -diff.x;
-		glm::vec3 up_movement = cam.GetUpVector() * diff.y;
-		glm::vec3 angle2 = lookAt - (cameraPos + right_movement + up_movement);
-
-		auto rotation = Object::RotationBetweenVectors(lookAt - cameraPos, angle2);
-		auto roation = glm::toMat4(rotation);
-		angle += diff;
-		if (angle.y > 90.0f) angle.y = 90.0f - EPS;
-		if (angle.y < -90.0f) angle.y = -90.0f + EPS;
-		if (angle.x > 180.0f) angle.x = -180.0f + EPS;
-		if (angle.x < -180.0f) angle.x = 180.0f - EPS;
-		radius = glm::length(cameraPos - lookAt);
-
-		cameraPos.x = lookAt.x + radius * glm::cos(glm::radians(angle.y)) * glm::cos(glm::radians(angle.x));
-		cameraPos.z = lookAt.z + radius * -glm::cos(glm::radians(angle.y)) * glm::sin(glm::radians(angle.x));
-		cameraPos.y = lookAt.y + radius * glm::sin(glm::radians(-angle.y));
-
-		cameraFront = glm::normalize(lookAt - cameraPos);
-		cam.LookAt(cameraPos, cameraFront, cameraUp);
-	}
-	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
 	{
 		glm::vec2 diff = (mousePosOld - mousePos) * PRECISION;
 		float cameraSpeed = speed * deltaTime;
@@ -340,24 +234,6 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 	}
 	mousePosOld = mousePos;
 }
-
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
-{
-	if (ImGui::GetIO().WantCaptureMouse)
-		return;
-
-	float precision = 0.01f;
-
-	float movement = 1.0f - yoffset * precision;
-	if (movement <= 0.0f)
-		movement = 0.1f;
-	cameraFront = glm::normalize(lookAt - cameraPos);
-	float dist = glm::length(lookAt - cameraPos);
-	cameraPos = lookAt - (cameraFront * dist * movement);
-	cam.LookAt(cameraPos, cameraFront, cameraUp);
-
-}
-
 #pragma endregion
 
 void create_gui() {
