@@ -51,7 +51,7 @@ void Camera::SetPerspective(float fov_y, float aspect, float near, float far)
 	persp[3][2] = -((far * near * 2) / (far - near));
 	persp[3][3] = 0;
 	persp[2][3] = -1;
-	m_projection_matrix = persp;
+	m_projection_matrix = glm::orthoRH(-1.0f * aspect, 1.0f*aspect, -1.0f, 1.0f, 1.0f, -1.0f);;
 
 }
 

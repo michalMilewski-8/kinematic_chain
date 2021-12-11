@@ -11,51 +11,32 @@
 #include <cmath>
 
 class Block :
-    public Object
+	public Object
 {
 public:
-    Block(float x_size_, float y_size_, float z_size_, int x_divisions_, int y_divisions_, Shader sh);
+	Block(glm::vec2 lup, Shader sh);
 
-    void DrawObject(glm::mat4 mvp) override;
+	void DrawObject(glm::mat4 mvp) override;
 
-    static glm::quat EulerToQuaternion(glm::vec3 rot);
-    static glm::vec3 QuaternionToEuler(glm::quat quat);
+	static glm::quat EulerToQuaternion(glm::vec3 rot);
+	static glm::vec3 QuaternionToEuler(glm::quat quat);
 
-    int GetXDivisions() const { return x_divisions; }
-    int GetYDivisions() const { return y_divisions; }
-    float GetXSize() const { return x_size; }
-    float GetYSize() const { return y_size; }
+	void Update() override;
+	void SetLowerRight(glm::vec2 lr) { lower_right = lr; Update(); }
 
-    glm::vec3 TransformToDivisions(glm::vec3 pos) const;
-
-    void SetViewPos(glm::vec3 view_pos);
-    void Update() override;
-    float GetHeight(int x, int y);
-    void SetHeight(int x, int y, float val);
-    void DrawFrame(float T, glm::vec3 start_pos, glm::vec3 end_pos, glm::vec3 rotation_start, glm::vec3 rotation_end, bool aproximation_is_line = true);
-    void DrawFrame(float T, glm::vec3 start_pos, glm::vec3 end_pos, glm::quat rotation_start, glm::quat rotation_end, bool aproximation_is_line = true);
+	std::vector<glm::vec2> corners;
 
 private:
-    void create_block_points();
-    void update_object() override;
+	void create_block_points();
+	void update_object() override;
 
-    int x_divisions;
-    int y_divisions;
+	glm::vec2 upper_left;
+	glm::vec2 lower_right;
 
-    float x_size;
-    float y_size;
-    float z_size;
 
-    std::vector<std::vector<float>> height_map;
-    std::vector<float>data = {};
 
-    glm::vec3 view_pos;
-    bool blocks_need_creation = true;
-    float x_delta;
-    float y_delta;
+	bool blocks_need_creation = true;
 
-    unsigned int texture;
-    std::vector<float> points;
-    std::vector<unsigned int> quads;
+	std::vector<float> points;
+	std::vector<unsigned int> quads;
 };
-

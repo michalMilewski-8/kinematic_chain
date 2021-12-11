@@ -18,7 +18,6 @@ public:
     float GetHorizontal() const { return horizontal_points_number; }
     glm::vec4 GetColor() const { return color; }
 
-    void Serialize(xml_document<>& document, xml_node<>* scene)  override;
     std::vector<std::function<glm::vec3(double, double)>> GetParametrisations() override;
     std::vector<std::function<glm::vec3(double, double)>> GetUParametrisations() override;
     std::vector<std::function<glm::vec3(double, double)>> GetVParametrisations() override;

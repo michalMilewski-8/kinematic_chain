@@ -17,20 +17,16 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-#include "Dependencies/include/rapidxml-1.13/rapidxml.hpp"
-#include "Dependencies/include/rapidxml-1.13/rapidxml_print.hpp"
-#include "Dependencies/include/rapidxml-1.13/rapidxml_utils.hpp"
-#include "./Dependencies/include/ImGuiFileDialog-Lib_Only/ImGuiFileDialog.h"
-
 #define DEFAULT_WIDTH 1280
 #define DEFAULT_HEIGHT 720
 #define EPS 0.1
 #define PRECISION 1.0f
-using namespace rapidxml;
+
 using namespace std;
 
 glm::vec3 cameraPos, cameraFront, cameraUp, lookAt, moving_up;
 unsigned int width_, height_;
+float aspect_;
 
 int e = 0;
 glm::mat4 projection, view, model, mvp;
@@ -38,15 +34,15 @@ glm::mat4 projection_i, view_i, model_i, mvp_i;
 glm::vec2 mousePosOld, angle;
 float deltaTime = 0.0f;	// Time between current frame and last frame
 float lastFrame = 0.0f; // Time of last frame
-float ipd = 0.01f;
-float d = 0.1f;
-float near = 0.01f;
-float far = 20.0f;
 bool animate = false;
+bool editing_state = true;
+bool add_boxes = true;
+int box_index = -1;
 float T = 0.0f;
 float animation_time = 1.0f;
-bool show_frames = false;
-int number_of_frames_shown = 15;
+float l1 = 0.3f;
+float l2 = 0.2f;
+
 
 float distance_d = 1.0f;
 float speed = 0.2f; // speed of milling tool in milimeters per second;
@@ -68,13 +64,13 @@ Shader ourShader;
 GLFWwindow* window;
 //std::unique_ptr<Cursor> cursor, center;
 
-std::vector<std::shared_ptr<Object>> objects_list = {};
-std::unique_ptr<Block> block;
+std::vector<std::shared_ptr<Block>> objects_list = {};
 
 void draw_scene();
 void framebuffer_size_callback(GLFWwindow* window_1, int width, int height);
 void processInput(GLFWwindow* window);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void create_gui();
 
 int main() {
@@ -94,17 +90,16 @@ int main() {
 	model = glm::mat4(1.0f);
 	view = glm::mat4(1.0f);
 
-	cameraPos = { 0,0,5 };
+	cameraPos = { 0,0,1 };
 	cameraFront = { 0,0,-1 };
-	lookAt = { 0,0,0 };
 	cameraUp = { 0,1,0 };
 
-	angle = { -90.0f, 0.0f };
 	width_ = DEFAULT_WIDTH;
 	height_ = DEFAULT_HEIGHT;
 
 	cam = Camera(cameraPos, cameraFront, cameraUp);
-	cam.SetPerspective(glm::radians(45.0f), DEFAULT_WIDTH / (float)DEFAULT_HEIGHT, near, far);
+	aspect_ = DEFAULT_WIDTH / (float)DEFAULT_HEIGHT;
+	cam.SetPerspective(glm::radians(45.0f), aspect_, 1, 1);
 
 
 	glfwMakeContextCurrent(window);
@@ -118,6 +113,7 @@ int main() {
 	glViewport(0, 0, DEFAULT_WIDTH, DEFAULT_HEIGHT);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetMouseButtonCallback(window, mouse_button_callback);
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -132,11 +128,9 @@ int main() {
 	ImGui_ImplOpenGL3_Init(glsl_version);
 
 	// build and compile our shader program
-	ourShader = Shader("shader.vs", "shader.fs"); // you can name your shader files however you like
+	ourShader = Shader("shader.vert", "shader.frag"); // you can name your shader files however you like
 
 	glEnable(GL_DEPTH_TEST);
-
-	block = std::make_unique<Block>(size_x, size_y, size_z, divisions_x, divisions_y, ourShader);
 
 	// render loop
 	while (!glfwWindowShouldClose(window))
@@ -146,19 +140,19 @@ int main() {
 		glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		projection = cam.GetProjectionMatrix();
-		projection_i = glm::inverse(projection);
-		view = cam.GetViewMatrix();
-		view_i = glm::inverse(view);
-
-		mvp = projection * view;
-
 		float currentFrame = glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
 
 		processInput(window);
 		create_gui();
+
+		projection = cam.GetProjectionMatrix();
+		projection_i = glm::inverse(projection);
+		view = cam.GetViewMatrix();
+		view_i = glm::inverse(view);
+
+		mvp = projection * view;
 
 		draw_scene();
 
@@ -189,8 +183,9 @@ int main() {
 }
 
 void draw_scene() {
-	block->DrawFrame(T, translation_s, translation_e, quaternion_s, quaternion_e, is_linear_aprox);
-	block->DrawObject(mvp);
+	for (auto& obj : objects_list) {
+		obj->DrawObject(mvp);
+	}
 }
 
 #pragma region  boilerCodeOpenGL
@@ -200,7 +195,8 @@ void framebuffer_size_callback(GLFWwindow* window_1, int width, int height)
 	glfwMakeContextCurrent(window_1);
 	glViewport(0, 0, width, height);
 
-	cam.SetPerspective(glm::radians(45.0f), width / (float)height, near, far);
+	aspect_ = width / (float)height;
+	cam.SetPerspective(glm::radians(45.0f), aspect_, 1, 1);
 	width_ = width;
 	height_ = height;
 }
@@ -217,22 +213,32 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
 	if (ImGui::GetIO().WantCaptureMouse)
 		return;
-	glm::vec2 mousePos = { xpos,ypos };
-	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-	{
-		glm::vec2 diff = (mousePosOld - mousePos) * PRECISION;
-		float cameraSpeed = speed * deltaTime;
-
-		glm::vec2 movement = diff * cameraSpeed;
-
-		glm::vec3 right_movement = cam.GetRightVector() * movement.x;
-		glm::vec3 up_movement = cam.GetUpVector() * -movement.y;
-		cameraPos += right_movement + up_movement;
-		lookAt += right_movement + up_movement;
-
-		cam.LookAt(cameraPos, cameraFront, cameraUp);
+	if (!editing_state || !add_boxes)
+		return;
+	if (box_index >= 0) {
+		glm::vec2 mousePos = glm::vec2(((xpos / width_) * 2.0f - 1.0f) * aspect_, -((ypos / height_) * 2.0f - 1.0f));
+		objects_list[box_index]->SetLowerRight(mousePos);
 	}
-	mousePosOld = mousePos;
+}
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+	if (ImGui::GetIO().WantCaptureMouse)
+		return;
+	if (!(add_boxes && editing_state))
+		return;
+
+	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+	{
+		double x_pos, y_pos;
+		glfwGetCursorPos(window, &x_pos, &y_pos);
+		glm::vec2 mousePos = glm::vec2(((x_pos / width_) * 2.0f - 1.0f) * aspect_, -((y_pos / height_) * 2.0f - 1.0f));
+		if (box_index >= 0)
+			box_index = -1;
+		else {
+			objects_list.push_back(std::make_shared<Block>(mousePos, ourShader));
+			box_index = objects_list.size() - 1;
+		}
+	}
 }
 #pragma endregion
 
@@ -251,7 +257,7 @@ void create_gui() {
 	if (ImGui::InputFloat3("Euler rotation start", (float*)&rot_euler_s)) quaternion_s = Block::EulerToQuaternion(rot_euler_s);
 	if (ImGui::InputFloat3("Euler rotation end", (float*)&rot_euler_e)) quaternion_e = Block::EulerToQuaternion(rot_euler_e);
 	if (ImGui::InputFloat4("Quaternion start", (float*)&quaternion_s)) {
-		
+
 	}
 	if (ImGui::InputFloat4("Quaternion end", (float*)&quaternion_e)) {
 	};
@@ -259,9 +265,8 @@ void create_gui() {
 	ImGui::SliderFloat("Animation time", &animation_time, 0.1f, 100.0f, "%.3f", 1.0f);
 	ImGui::Checkbox("Linear aproximation (true) or spherical (false)", &is_linear_aprox);
 
-	ImGui::Checkbox("Show frame by frame", &show_frames);
-	if (show_frames)
-		ImGui::SliderInt("Number of frames shown", &number_of_frames_shown, 1, 200);
+	ImGui::Checkbox("editing state", &editing_state);
+	ImGui::Checkbox("add new constraint boxes", &add_boxes);
 
 	if (ImGui::Button("Start Animation")) animate = true;
 	if (ImGui::Button("Normalize quaternion")) {

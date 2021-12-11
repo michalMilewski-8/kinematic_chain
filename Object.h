@@ -19,9 +19,6 @@
 #include "Camera.h"
 #include "imgui.h"
 #include "Virtual.h"
-#include "Dependencies/include/rapidxml-1.13/rapidxml.hpp"
-
-using namespace rapidxml;
 
 class Object
 	
@@ -43,7 +40,6 @@ public:
 	bool CompareName(std::string name_);
 	virtual void Update() {};
 	virtual std::vector<std::shared_ptr<Object>> GetVirtualObjects() { return std::vector<std::shared_ptr<Object>>(); };
-	virtual void Serialize(xml_document<>& document, xml_node<>* scene) {};
 	virtual std::vector<std::function<glm::vec3(double, double)>> GetParametrisations() { return {}; };
 	virtual std::vector<std::function<glm::vec3(double, double)>> GetUParametrisations() { return {}; };
 	virtual std::vector<std::function<glm::vec3(double, double)>> GetVParametrisations() { return {}; };

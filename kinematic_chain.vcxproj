@@ -154,7 +154,6 @@
   <ItemGroup>
     <ClCompile Include="Block.cpp" />
     <ClCompile Include="Camera.cpp" />
-    <ClCompile Include="Dependencies\include\ImGuiFileDialog-Lib_Only\ImGuiFileDialog.cpp" />
     <ClCompile Include="imgui.cpp" />
     <ClCompile Include="imgui_demo.cpp" />
     <ClCompile Include="imgui_draw.cpp" />
@@ -171,12 +170,6 @@
     <ClInclude Include="Block.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Dependencies\include\ImGuiFileDialog-Lib_Only\dirent\dirent.h" />
-    <ClInclude Include="Dependencies\include\ImGuiFileDialog-Lib_Only\ImGuiFileDialog.h" />
-    <ClInclude Include="Dependencies\include\ImGuiFileDialog-Lib_Only\ImGuiFileDialogConfig.h" />
-    <ClInclude Include="Dependencies\include\rapidxml-1.13\rapidxml.hpp" />
-    <ClInclude Include="Dependencies\include\rapidxml-1.13\rapidxml_iterators.hpp" />
-    <ClInclude Include="Dependencies\include\rapidxml-1.13\rapidxml_print.hpp" />
-    <ClInclude Include="Dependencies\include\rapidxml-1.13\rapidxml_utils.hpp" />
     <ClInclude Include="imconfig.h" />
     <ClInclude Include="imgui.h" />
     <ClInclude Include="imgui_impl_glfw.h" />
@@ -191,8 +184,8 @@
     <ClInclude Include="Torus.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="shader.fs" />
-    <None Include="shader.vs" />
+    <None Include="shader.frag" />
+    <None Include="shader.vert" />
     <None Include="shader_tex.frag" />
     <None Include="shader_tex.vert" />
   </ItemGroup>
