@@ -37,6 +37,7 @@ float lastFrame = 0.0f; // Time of last frame
 bool animate = false;
 bool editing_state = true;
 bool add_boxes = true;
+bool edit_arm_pos = false;
 int box_index = -1;
 float T = 0.0f;
 float animation_time = 1.0f;
@@ -65,6 +66,7 @@ GLFWwindow* window;
 //std::unique_ptr<Cursor> cursor, center;
 
 std::vector<std::shared_ptr<Block>> objects_list = {};
+std::shared_ptr<Arm> arm = {};
 
 void draw_scene();
 void framebuffer_size_callback(GLFWwindow* window_1, int width, int height);
@@ -132,6 +134,7 @@ int main() {
 
 	glEnable(GL_DEPTH_TEST);
 
+	arm = std::make_shared<Arm>(ourShader);
 	// render loop
 	while (!glfwWindowShouldClose(window))
 	{
@@ -186,6 +189,7 @@ void draw_scene() {
 	for (auto& obj : objects_list) {
 		obj->DrawObject(mvp);
 	}
+	arm->DrawObject(mvp);
 }
 
 #pragma region  boilerCodeOpenGL
@@ -224,7 +228,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
 	if (ImGui::GetIO().WantCaptureMouse)
 		return;
-	if (!(add_boxes && editing_state))
+	if (!editing_state)
 		return;
 
 	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
@@ -232,11 +236,16 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 		double x_pos, y_pos;
 		glfwGetCursorPos(window, &x_pos, &y_pos);
 		glm::vec2 mousePos = glm::vec2(((x_pos / width_) * 2.0f - 1.0f) * aspect_, -((y_pos / height_) * 2.0f - 1.0f));
-		if (box_index >= 0)
-			box_index = -1;
-		else {
-			objects_list.push_back(std::make_shared<Block>(mousePos, ourShader));
-			box_index = objects_list.size() - 1;
+		if (add_boxes) {
+			if (box_index >= 0)
+				box_index = -1;
+			else {
+				objects_list.push_back(std::make_shared<Block>(mousePos, ourShader));
+				box_index = objects_list.size() - 1;
+			}
+		}
+		else if (edit_arm_pos) {
+			arm->SetPoint(mousePos);
 		}
 	}
 }
@@ -252,30 +261,16 @@ void create_gui() {
 	//flags |= ImGuiWindowFlags_MenuBar;
 	ImGui::Begin("Main Menu##uu", &open, flags);
 
-	ImGui::InputFloat3("Start Position", (float*)&translation_s);
-	ImGui::InputFloat3("End Position", (float*)&translation_e);
-	if (ImGui::InputFloat3("Euler rotation start", (float*)&rot_euler_s)) quaternion_s = Block::EulerToQuaternion(rot_euler_s);
-	if (ImGui::InputFloat3("Euler rotation end", (float*)&rot_euler_e)) quaternion_e = Block::EulerToQuaternion(rot_euler_e);
-	if (ImGui::InputFloat4("Quaternion start", (float*)&quaternion_s)) {
-
-	}
-	if (ImGui::InputFloat4("Quaternion end", (float*)&quaternion_e)) {
-	};
 
 	ImGui::SliderFloat("Animation time", &animation_time, 0.1f, 100.0f, "%.3f", 1.0f);
-	ImGui::Checkbox("Linear aproximation (true) or spherical (false)", &is_linear_aprox);
+
+	arm->Menu();
 
 	ImGui::Checkbox("editing state", &editing_state);
 	ImGui::Checkbox("add new constraint boxes", &add_boxes);
+	ImGui::Checkbox("edit arm position", &edit_arm_pos);
 
 	if (ImGui::Button("Start Animation")) animate = true;
-	if (ImGui::Button("Normalize quaternion")) {
-		quaternion_s = glm::normalize(quaternion_s);
-		quaternion_e = glm::normalize(quaternion_e);
-		rot_euler_e = Block::QuaternionToEuler(quaternion_e);
-		rot_euler_s = Block::QuaternionToEuler(quaternion_s);
-	}
-
 
 	if (ImGui::Button("Stop Animation")) animate = false;
 	if (ImGui::Button("Restart Animation")) T = 0.0f;

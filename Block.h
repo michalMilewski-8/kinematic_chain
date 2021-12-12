@@ -18,9 +18,6 @@ public:
 
 	void DrawObject(glm::mat4 mvp) override;
 
-	static glm::quat EulerToQuaternion(glm::vec3 rot);
-	static glm::vec3 QuaternionToEuler(glm::quat quat);
-
 	void Update() override;
 	void SetLowerRight(glm::vec2 lr) { lower_right = lr; Update(); }
 
@@ -36,6 +33,52 @@ private:
 
 
 	bool blocks_need_creation = true;
+
+	std::vector<float> points;
+	std::vector<unsigned int> quads;
+};
+
+class Arm :
+	public Object
+{
+public:
+	Arm(Shader sh);
+
+	void DrawObject(glm::mat4 mvp) override;
+
+	static glm::quat EulerToQuaternion(glm::vec3 rot);
+	static glm::vec3 QuaternionToEuler(glm::quat quat);
+
+	void Update() override { need_update = true; };
+	void SetPoint(glm::vec2 lr);
+	void SetFinalPos();
+	void Menu();
+
+	void UpdateTexture(const std::vector <std::shared_ptr<Block>>& constraints);
+
+private:
+	void create_block_points();
+	void update_object() override;
+	glm::vec2 p1(glm::vec2 angles);
+	glm::vec2 p2(glm::vec2 angles);
+
+	glm::vec2 start_point;
+	glm::vec2 start_op_a;
+	glm::vec2 start_op_b;
+
+	glm::vec2 end_point;
+	glm::vec2 end_op_a;
+	glm::vec2 end_op_b;
+
+	std::vector<glm::vec2> path;
+
+	int show_pos = 0;
+	int option = 0;
+
+	float L1 = 0.5f, L2 = 0.5f;
+
+	bool blocks_need_creation = true;
+	bool can_not_draw = false;
 
 	std::vector<float> points;
 	std::vector<unsigned int> quads;
