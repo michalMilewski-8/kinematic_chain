@@ -53,12 +53,15 @@ public:
 	void SetPoint(glm::vec2 lr);
 	void SetFinalPos();
 	void Menu();
+	void SetT(float T) { T_ = T; Update(); };
 
 	void UpdateTexture(const std::vector <std::shared_ptr<Block>>& constraints);
 
 private:
 	void create_block_points();
 	void update_object() override;
+	bool linesIntersect(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4);
+	void flood_fill(std::vector<std::vector<int>>& data);
 	glm::vec2 p1(glm::vec2 angles);
 	glm::vec2 p2(glm::vec2 angles);
 
@@ -74,11 +77,15 @@ private:
 
 	int show_pos = 0;
 	int option = 0;
+	bool show_textures = false;
 
 	float L1 = 0.5f, L2 = 0.5f;
+	float T_ = -1;
 
 	bool blocks_need_creation = true;
 	bool can_not_draw = false;
+
+	unsigned int texture_left_ID;
 
 	std::vector<float> points;
 	std::vector<unsigned int> quads;

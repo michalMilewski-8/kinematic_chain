@@ -189,6 +189,9 @@ void draw_scene() {
 	for (auto& obj : objects_list) {
 		obj->DrawObject(mvp);
 	}
+	if (animate) {
+		arm->SetT(T);
+	}
 	arm->DrawObject(mvp);
 }
 
@@ -266,14 +269,29 @@ void create_gui() {
 
 	arm->Menu();
 
-	ImGui::Checkbox("editing state", &editing_state);
+	if (ImGui::Checkbox("editing state", &editing_state)) {
+		if (editing_state)
+			arm->SetT(-1.0f);
+		else
+			arm->SetT(0.0f);
+	}
 	ImGui::Checkbox("add new constraint boxes", &add_boxes);
 	ImGui::Checkbox("edit arm position", &edit_arm_pos);
 
-	if (ImGui::Button("Start Animation")) animate = true;
+	if (ImGui::Button("Update texture")) arm->UpdateTexture(objects_list);
 
-	if (ImGui::Button("Stop Animation")) animate = false;
-	if (ImGui::Button("Restart Animation")) T = 0.0f;
+	if (ImGui::Button("Start Animation")) {
+		animate = true;
+		editing_state = false;
+	}
+
+	if (ImGui::Button("Stop Animation")) {
+		animate = false;
+	}
+	if (ImGui::Button("Restart Animation")) {
+		arm->SetT(0.0f);
+		T = 0.0f;
+	}
 
 	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 	ImGui::End();
