@@ -4,9 +4,26 @@
 #include <fstream>
 #include <queue>
 
+int Block::counter = 1;
+
 void Block::Update()
 {
 	need_update = true;
+}
+
+void Block::CreateMenu()
+{
+	if (ImGui::TreeNode(constname.c_str()))
+	{
+		glm::vec2 movement = { 0,0 };
+		if (ImGui::SliderFloat2("Move", &(movement.x), -0.01f, 0.01f)) {
+			upper_left += movement;
+			lower_right += movement;
+			Update();
+		}
+		ImGui::TreePop();
+		ImGui::Separator();
+	}
 }
 
 void Block::create_block_points()
@@ -66,6 +83,7 @@ Block::Block(glm::vec2 lup, Shader sh) :
 {
 	upper_left = lup;
 	lower_right = lup;
+	constname = "Block " + std::to_string(counter++);
 	color = { rand() % 10 / 10.0f,rand() % 10 / 10.0f ,rand() % 10 / 10.0f ,1.0f };
 	update_object();
 }
@@ -182,8 +200,8 @@ void Arm::SetFinalPos()
 
 void Arm::Menu()
 {
-	ImGui::InputFloat("L1", &L1);
-	ImGui::InputFloat("L2", &L2);
+	if(ImGui::InputFloat("L1", &L1)) need_update = true;
+	if (ImGui::InputFloat("L2", &L2)) need_update = true;
 
 	if (ImGui::RadioButton("Show start position", &show_pos, 0)) Update();
 	if (ImGui::RadioButton("Show end position", &show_pos, 1)) Update();
@@ -382,26 +400,20 @@ void Arm::UpdateTexture(const std::vector<std::shared_ptr<Block>>& constraints)
 
 	while (point > 0 && !can_not_draw) {
 		point--;
-		std::cout << "x: " << current_pt.x << " y: " << current_pt.y << " values: " << values_left.size()<< std::endl;
 		if (values_left[(current_pt.x + 1) % n][current_pt.y] == point) {
-			std::cout << "1 x: " << current_pt.x << " y: " << current_pt.y << std::endl;
 			current_pt = { (current_pt.x + 1) % n,current_pt.y };
 		}
 		else if (values_left[current_pt.x - 1 < 0 ? n - 1 : current_pt.x - 1][current_pt.y] == point) {
-			std::cout << "2 x: " << current_pt.x << " y: " << current_pt.y << std::endl;
 			current_pt = { current_pt.x - 1 < 0 ? n - 1 : current_pt.x - 1,current_pt.y };
 		}
 		else if (values_left[current_pt.x][(current_pt.y + 1) % n] == point) {
-			std::cout << "3 x: " << current_pt.x << " y: " << current_pt.y << std::endl;
 			current_pt = { current_pt.x,(current_pt.y + 1) % n };
 		}
 		else if (values_left[current_pt.x][current_pt.y - 1 < 0 ? n - 1 : current_pt.y - 1] == point) {
-			std::cout << "4 x: " << current_pt.x << " y: " << current_pt.y << std::endl;
 			current_pt = { current_pt.x,current_pt.y - 1 < 0 ? n - 1 : current_pt.y - 1 };
 		}
 		else
 			can_not_draw = true;
-		std::cout << "end x: " << current_pt.x << " y: " << current_pt.y << std::endl;
 		path.push_back(current_pt);
 	}
 

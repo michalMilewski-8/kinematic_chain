@@ -14,12 +14,15 @@ class Block :
 	public Object
 {
 public:
+	static int counter;
+
 	Block(glm::vec2 lup, Shader sh);
 
 	void DrawObject(glm::mat4 mvp) override;
 
 	void Update() override;
 	void SetLowerRight(glm::vec2 lr) { lower_right = lr; Update(); }
+	void CreateMenu();
 
 	std::vector<glm::vec2> corners;
 

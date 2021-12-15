@@ -280,6 +280,24 @@ void create_gui() {
 
 	if (ImGui::Button("Update texture")) arm->UpdateTexture(objects_list);
 
+	int to_delete = -1;
+	if (ImGui::CollapsingHeader("Objects Present on Scene")) {
+		int i = 0;
+		for (auto& ob : objects_list) {
+			ob->CreateMenu();
+			ImGui::SameLine();
+			if (ImGui::Button(("Delete##" + std::to_string(i)).c_str())) {
+				to_delete = i;
+			}
+			i++;
+		}
+		if (to_delete > -1) {
+			objects_list.erase(objects_list.begin() + to_delete);
+			to_delete = -1;
+			std::for_each(objects_list.begin(), objects_list.end(), [](std::shared_ptr<Object> obj) {obj->Update(); });
+		}
+	}
+
 	if (ImGui::Button("Start Animation")) {
 		animate = true;
 		editing_state = false;
